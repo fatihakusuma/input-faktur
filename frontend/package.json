@@ -1,0 +1,7 @@
+{
+  "homepage": "https://fatihakusuma.github.io/input-faktur",
+  "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
+  }
+}
