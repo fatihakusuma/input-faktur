@@ -1,3 +1,4 @@
+// frontend/src/UploadFaktur.jsx
 import React, { useState } from "react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -8,25 +9,25 @@ export default function UploadFaktur() {
   const [parsedData, setParsedData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [submitStatus, setSubmitStatus] = useState("");
+  const [submitStatus, setSubmitStatus] = useState({ azpyg: "", admv1: "" });
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
     setParsedData(null);
     setError(null);
-    setSubmitStatus("");
+    setSubmitStatus({ azpyg: "", admv1: "" });
   };
 
   const handleUpload = async () => {
     if (!file) return;
     setLoading(true);
     setError(null);
-    setSubmitStatus("");
+    setSubmitStatus({ azpyg: "", admv1: "" });
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("https://your-backend-url/parse-invoice", {
+      const response = await fetch("https://backend-URL/parse-invoice", {
         method: "POST",
         body: formData,
       });
@@ -51,19 +52,23 @@ export default function UploadFaktur() {
     setParsedData(updated);
   };
 
-  const handleSubmitToApotek = async () => {
-    setSubmitStatus("Mengirim ke ApotekDigital...");
+  const handleSubmitToTarget = async (target) => {
+    const url =
+      target === "azpyg"
+        ? "https://azpyg.apotekdigital.id/purchase-invoice"
+        : "https://admv1.apotekdigital.id/purchase-invoice";
+    setSubmitStatus((prev) => ({ ...prev, [target]: "Mengirim..." }));
+
     try {
-      const response = await fetch("https://your-automator-url/run", {
+      const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(parsedData),
       });
-
-      if (!response.ok) throw new Error("Gagal submit ke ApotekDigital");
-      setSubmitStatus("✅ Berhasil dikirim ke ApotekDigital!");
+      if (!response.ok) throw new Error("Gagal submit ke " + target);
+      setSubmitStatus((prev) => ({ ...prev, [target]: "✅ Berhasil" }));
     } catch (err) {
-      setSubmitStatus(`❌ Gagal: ${err.message}`);
+      setSubmitStatus((prev) => ({ ...prev, [target]: `❌ Gagal: ${err.message}` }));
     }
   };
 
@@ -76,11 +81,7 @@ export default function UploadFaktur() {
         accept="application/pdf,image/*"
         onChange={handleFileChange}
       />
-      <Button
-        className="mt-2"
-        onClick={handleUpload}
-        disabled={loading}
-      >
+      <Button className="mt-2" onClick={handleUpload} disabled={loading}>
         {loading ? "Memproses..." : "Upload & Proses"}
       </Button>
 
@@ -152,15 +153,13 @@ export default function UploadFaktur() {
               ))}
             </div>
 
-            <Button
-              className="mt-4"
-              onClick={handleSubmitToApotek}
-            >
-              Submit ke ApotekDigital
-            </Button>
-            {submitStatus && (
-              <p className="text-sm mt-2">{submitStatus}</p>
-            )}
+            <div className="mt-4 space-x-2">
+              <Button onClick={() => handleSubmitToTarget("azpyg")}>Submit ke Azpyg</Button>
+              <Button onClick={() => handleSubmitToTarget("admv1")}>Submit ke Admv1</Button>
+            </div>
+
+            {submitStatus.azpyg && <p>Azpyg: {submitStatus.azpyg}</p>}
+            {submitStatus.admv1 && <p>Admv1: {submitStatus.admv1}</p>}
           </CardContent>
         </Card>
       )}
