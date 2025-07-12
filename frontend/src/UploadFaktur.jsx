@@ -3,6 +3,11 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Card, CardContent } from "./components/ui/card";
 
+// parsing
+const BACKEND_URL = "https://input-faktur-backend.onrender.com";
+// submit
+const AUTOMATOR_URL = "https://input-faktur-automator.onrender.com";
+
 export default function UploadFaktur() {
   const [file, setFile] = useState(null);
   const [parsedData, setParsedData] = useState(null);
@@ -46,7 +51,7 @@ export default function UploadFaktur() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("https://your-backend-url/parse-invoice", {
+      const response =  await fetch(`${BACKEND_URL}/parse-invoice`, {
         method: "POST",
         body: formData,
       });
