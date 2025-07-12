@@ -1,4 +1,3 @@
-// frontend/src/UploadFaktur.jsx
 import React, { useState } from "react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -9,31 +8,65 @@ export default function UploadFaktur() {
   const [parsedData, setParsedData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [submitStatus, setSubmitStatus] = useState({ azpyg: "", admv1: "" });
+  const [submitStatus, setSubmitStatus] = useState("");
+
+  const SUPPLIERS = [
+    "ANUGRAH ARGON MEDIKA (AAM)", "ANUGRAH PHARMINDO LESTARI (APL)", "apotek",
+    "ASA MULIA", "BHARADAH SAKTI", "BSP( BINA SAN PRIMA)", "BUANA AGUNG ABIYAKSA (BAA)",
+    "COMBI PUTERA MANDIRI (CPM)", "DLS", "ENSEVAL PUTRA MEGATRADING (EPM)", "gratia jaya farma",
+    "IBOE", "KARYA PAK OLES", "KEBAYORAN", "Konsi", "lifree", "MENSA BINA SUKSES (MBS)",
+    "MITRA ABADI SEJAHTERA (MAS)", "MITRA GLOBAL COVERINDO", "MITRA SEHATI SEKATA",
+    "MULYA WIBAWA", "ngarang", "PARIT PADANG GLOBAL (PPG)", "PPKH", "RAJAWALI NUSINDO",
+    "SABDA BADRANAYA", "SAPTA SARI", "sehat joyo makmur", "SUMBER AGUNG SANTOSA (SAS)",
+    "SURYA ALPHA MEDIKA (SAM)", "Surya Prima Perkasa (SPP)", "SURYA SUCCES SEJATI (S3)",
+    "tri intan jaya", "United Dico Citas (UDC)", "USD", "VICTORY"
+  ];
+
+  const JENIS_FAKTUR = [
+    "Harga Belum Termasuk Pajak",
+    "Harga Sudah Termasuk Pajak",
+    "Tidak Termasuk Pajak"
+  ];
+
+  const JENIS_PEMBAYARAN = ["Tunai", "Kredit"];
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
     setParsedData(null);
     setError(null);
-    setSubmitStatus({ azpyg: "", admv1: "" });
+    setSubmitStatus("");
   };
 
   const handleUpload = async () => {
     if (!file) return;
     setLoading(true);
     setError(null);
-    setSubmitStatus({ azpyg: "", admv1: "" });
+    setSubmitStatus("");
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("https://backend-URL/parse-invoice", {
+      const response = await fetch("https://your-backend-url/parse-invoice", {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) throw new Error("Gagal memproses faktur");
       const data = await response.json();
+
+      const today = new Date().toISOString().split("T")[0];
+      data.tanggal_penerimaan = new Date().toISOString();
+      data.no_faktur = data.no_faktur?.slice(-4);
+      data.jenis_pembayaran = /tempo/i.test(data.catatan || "") ? "Kredit" : "Tunai";
+
+      if (data.produk) {
+        data.produk = data.produk.map(item => ({
+          ...item,
+          expired: item.expired || today,
+          batch: item.batch || "-"
+        }));
+      }
+
       setParsedData(data);
     } catch (err) {
       setError(err.message);
@@ -52,23 +85,19 @@ export default function UploadFaktur() {
     setParsedData(updated);
   };
 
-  const handleSubmitToTarget = async (target) => {
-    const url =
-      target === "azpyg"
-        ? "https://azpyg.apotekdigital.id/purchase-invoice"
-        : "https://admv1.apotekdigital.id/purchase-invoice";
-    setSubmitStatus((prev) => ({ ...prev, [target]: "Mengirim..." }));
-
+  const handleSubmitTo = async (url) => {
+    setSubmitStatus("Mengirim data faktur...");
     try {
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(parsedData),
       });
-      if (!response.ok) throw new Error("Gagal submit ke " + target);
-      setSubmitStatus((prev) => ({ ...prev, [target]: "✅ Berhasil" }));
+
+      if (!response.ok) throw new Error("Gagal submit faktur");
+      setSubmitStatus("✅ Berhasil dikirim ke " + url);
     } catch (err) {
-      setSubmitStatus((prev) => ({ ...prev, [target]: `❌ Gagal: ${err.message}` }));
+      setSubmitStatus(`❌ Gagal: ${err.message}`);
     }
   };
 
@@ -90,32 +119,57 @@ export default function UploadFaktur() {
       {parsedData && (
         <Card className="mt-6">
           <CardContent className="space-y-4">
-            <h2 className="text-xl font-semibold">Data Faktur (Dapat Diedit)</h2>
+            <h2 className="text-xl font-semibold">Data Faktur</h2>
 
-            <Input
+            <select
+              className="w-full border p-2"
               value={parsedData.supplier || ""}
               onChange={(e) => handleChange(e, "supplier")}
-              placeholder="Supplier"
-            />
+            >
+              <option value="">Pilih Supplier</option>
+              {SUPPLIERS.map((s, i) => (
+                <option key={i} value={s}>{s}</option>
+              ))}
+            </select>
+
             <Input
               value={parsedData.no_faktur || ""}
               onChange={(e) => handleChange(e, "no_faktur")}
               placeholder="No. Faktur"
             />
+
             <Input
               value={parsedData.tanggal_faktur || ""}
               onChange={(e) => handleChange(e, "tanggal_faktur")}
-              placeholder="Tanggal Faktur"
               type="date"
+              placeholder="Tanggal Faktur"
             />
 
+            <select
+              className="w-full border p-2"
+              value={parsedData.jenis_faktur || ""}
+              onChange={(e) => handleChange(e, "jenis_faktur")}
+            >
+              <option value="">Pilih Jenis Faktur</option>
+              {JENIS_FAKTUR.map((j, i) => (
+                <option key={i} value={j}>{j}</option>
+              ))}
+            </select>
+
+            <select
+              className="w-full border p-2"
+              value={parsedData.jenis_pembayaran || ""}
+              onChange={(e) => handleChange(e, "jenis_pembayaran")}
+            >
+              {JENIS_PEMBAYARAN.map((j, i) => (
+                <option key={i} value={j}>{j}</option>
+              ))}
+            </select>
+
             <div className="space-y-2">
-              <h3 className="text-lg font-medium">Daftar Produk</h3>
+              <h3 className="text-lg font-medium">Produk</h3>
               {parsedData.produk?.map((item, index) => (
-                <div
-                  key={index}
-                  className="grid grid-cols-2 gap-2 border rounded p-2"
-                >
+                <div key={index} className="grid grid-cols-2 gap-2 border p-2">
                   <Input
                     value={item.nama || ""}
                     onChange={(e) => handleChange(e, null, index, "nama")}
@@ -136,7 +190,7 @@ export default function UploadFaktur() {
                   <Input
                     value={item.expired || ""}
                     onChange={(e) => handleChange(e, null, index, "expired")}
-                    placeholder="Expired Date"
+                    placeholder="Expired"
                     type="date"
                   />
                   <Input
@@ -153,13 +207,11 @@ export default function UploadFaktur() {
               ))}
             </div>
 
-            <div className="mt-4 space-x-2">
-              <Button onClick={() => handleSubmitToTarget("azpyg")}>Submit ke Azpyg</Button>
-              <Button onClick={() => handleSubmitToTarget("admv1")}>Submit ke Admv1</Button>
+            <div className="flex gap-2 mt-4">
+              <Button onClick={() => handleSubmitTo("https://azpyg.apotekdigital.id/purchase-invoice")}>Kirim ke Azpyg</Button>
+              <Button onClick={() => handleSubmitTo("https://admv1.apotekdigital.id/purchase-invoice")}>Kirim ke Admv1</Button>
             </div>
-
-            {submitStatus.azpyg && <p>Azpyg: {submitStatus.azpyg}</p>}
-            {submitStatus.admv1 && <p>Admv1: {submitStatus.admv1}</p>}
+            {submitStatus && <p className="text-sm mt-2">{submitStatus}</p>}
           </CardContent>
         </Card>
       )}
