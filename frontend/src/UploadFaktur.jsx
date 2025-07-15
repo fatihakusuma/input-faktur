@@ -45,7 +45,7 @@ export default function UploadFaktur() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("https://input-faktur-api.input-faktur.workers.dev/", {
+      const response = await fetch("https://input-faktur-api.input-faktur.workers.dev/parse-invoice", {
         method: "POST",
         body: formData,
       });
