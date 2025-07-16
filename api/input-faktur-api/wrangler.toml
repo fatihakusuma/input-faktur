@@ -1,0 +1,8 @@
+name = "input-faktur-api"
+main = "src/index.js"
+compatibility_date = "2025-07-12"
+workers_dev = true
+
+[build]
+command = "npm install"
+

@@ -1,0 +1,13 @@
+{
+  "name": "input-faktur-api",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "itty-router": "^3.0.10",
+    "@google/generative-ai": "^0.3.0"
+  }
+}
