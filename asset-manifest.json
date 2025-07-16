@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/input-faktur/static/js/main.fafec948.js",
+    "main.js": "/input-faktur/static/js/main.3e82ca03.js",
     "index.html": "/input-faktur/index.html",
-    "main.fafec948.js.map": "/input-faktur/static/js/main.fafec948.js.map"
+    "main.3e82ca03.js.map": "/input-faktur/static/js/main.3e82ca03.js.map"
   },
   "entrypoints": [
-    "static/js/main.fafec948.js"
+    "static/js/main.3e82ca03.js"
   ]
 }
