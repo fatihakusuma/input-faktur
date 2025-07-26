@@ -1,0 +1,9 @@
+name = "input-faktur"
+compatibility_date = "2024-01-01"
+
+[vars]
+CLOUDFLARE_API_TOKEN = "s70uhJQqDkiKLUmWtR4zMLyiAfJWJCzHSXz95oTx"
+GEMINI_API_KEY = "AIzaSyCVx4WHeWTIB_oe-Ds9LzN6IuKRAH1nLbM"
+
+# Untuk Cloudflare Workers
+account_id = "9015681848f309fbdb3f4e76c0973d4c"
