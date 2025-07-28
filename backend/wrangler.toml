@@ -1,5 +1,6 @@
-name = "input-faktur"
+name = "input_faktur"
 compatibility_date = "2024-01-01"
+main = "index.js" 
 
 [vars]
 CLOUDFLARE_API_TOKEN = "s70uhJQqDkiKLUmWtR4zMLyiAfJWJCzHSXz95oTx"
