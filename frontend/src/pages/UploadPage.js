@@ -5,21 +5,39 @@ import PharmacySelector from '../components/PharmacySelector';
 import { processInvoice } from '../services/geminiService';
 import { mapProducts } from '../utils/mapping';
 import produkMapping from '../data/produkMapping.json';
-import { submitInvoice } from '../services/apotekService';
+import { submitInvoice, getPharmacies } from '../services/apotekService'; // Perhatikan perubahan impor
 
 const UploadPage = () => {
   const [step, setStep] = useState(1);
   const [invoiceData, setInvoiceData] = useState(null);
   const [priceChanges, setPriceChanges] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error'
+  const [pharmacies, setPharmacies] = useState([]); // State untuk menyimpan daftar apotek
+  const [pharmacyLoading, setPharmacyLoading] = useState(false); // Loading khusus apotek
+  const [submitStatus, setSubmitStatus] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   
   // Reset state saat komponen dimount
   useEffect(() => {
-    // Hapus data dari localStorage jika ada
     localStorage.removeItem('invoiceData');
     localStorage.removeItem('targetPharmacy');
+    
+    // Ambil daftar apotek
+    const fetchPharmacies = async () => {
+      setPharmacyLoading(true);
+      try {
+        const data = await getPharmacies();
+        setPharmacies(data);
+      } catch (error) {
+        console.error('Failed to fetch pharmacies:', error);
+        setSubmitStatus('error');
+        setErrorMessage('Gagal memuat daftar apotek');
+      } finally {
+        setPharmacyLoading(false);
+      }
+    };
+    
+    fetchPharmacies();
   }, []);
 
   const handleFileUpload = async (fileData) => {
@@ -56,15 +74,12 @@ const UploadPage = () => {
 
   const handleEdit = (field, value, index = null) => {
     if (index === null) {
-      // Edit field utama
       setInvoiceData(prev => ({ ...prev, [field]: value }));
     } else {
-      // Edit field produk
       const newProduk = [...invoiceData.produk];
       const fieldName = field.replace('produk_', '');
       
       if (fieldName === 'nama') {
-        // Jika nama produk diubah, update opsi satuan
         newProduk[index] = { 
           ...newProduk[index], 
           [fieldName]: value,
@@ -79,11 +94,10 @@ const UploadPage = () => {
   };
 
   const simulatePriceChanges = () => {
-    // Simulasikan perbandingan harga
     const changes = invoiceData.produk.map(produk => {
-      const previousPrice = Math.floor(Math.random() * 50000) + 10000; // Simulasi
+      const previousPrice = Math.floor(Math.random() * 50000) + 10000;
       const priceChange = ((produk.harga_beli - previousPrice) / previousPrice) * 100;
-      const margin = Math.floor(Math.random() * 30) + 10; // Simulasi margin
+      const margin = Math.floor(Math.random() * 30) + 10;
       
       return {
         ...produk,
@@ -112,14 +126,8 @@ const UploadPage = () => {
         priceChanges: changes
       };
       
-      const response = await submitInvoice(data);
-    
-    if(response.status === 'success') {
-      alert('Proses berhasil! Data tidak disimpan permanen');
-    }
-  } catch (error) {
-    // Handle error
-  }
+      // Kirim ke backend
+      await submitInvoice(dataToSubmit);
       
       // 3. Lanjut ke step pemilihan apotek
       setStep(3);
@@ -146,10 +154,9 @@ const UploadPage = () => {
         selectedPharmacy: pharmacy
       };
       
-      const result = await submitInvoice(finalData);
-      console.log('Final submission:', result);
+      await submitInvoice(finalData);
       
-      // Simpan ke localStorage untuk halaman berikutnya
+      // Simpan ke localStorage
       localStorage.setItem('invoiceData', JSON.stringify(finalData));
       localStorage.setItem('targetPharmacy', JSON.stringify(pharmacy));
       
@@ -196,7 +203,7 @@ const UploadPage = () => {
             </div>
           )}
           
-          {loading && (
+          {(loading || pharmacyLoading) && (
             <div className="d-flex justify-content-center align-items-center my-5 py-5">
               <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">Loading...</span>
@@ -205,7 +212,7 @@ const UploadPage = () => {
             </div>
           )}
           
-          {!loading && step === 1 && (
+          {!loading && !pharmacyLoading && step === 1 && (
             <div className="text-center">
               <FileUpload onFileUpload={handleFileUpload} />
               <p className="mt-3 text-muted">
@@ -214,7 +221,7 @@ const UploadPage = () => {
             </div>
           )}
           
-          {!loading && step === 2 && invoiceData && (
+          {!loading && !pharmacyLoading && step === 2 && invoiceData && (
             <PreviewData 
               invoiceData={invoiceData} 
               onEdit={handleEdit}
@@ -222,10 +229,13 @@ const UploadPage = () => {
             />
           )}
           
-          {!loading && step === 3 && (
+          {!loading && !pharmacyLoading && step === 3 && (
             <div>
               <h2 className="mb-4">Pilih Apotek Tujuan</h2>
-              <PharmacySelector onSelect={handlePharmacySelect} />
+              <PharmacySelector 
+                pharmacies={pharmacies} 
+                onSelect={handlePharmacySelect} 
+              />
             </div>
           )}
         </div>
