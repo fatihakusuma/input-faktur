@@ -175,6 +175,29 @@ exports.comparePrices = async (req, res) => {
   }
 };
 
+// Fungsi untuk mendapatkan daftar apotek
+exports.getPharmacies = async (req, res) => {
+  try {
+    // Contoh data apotek (bisa diganti dengan data dinamis)
+    const pharmacies = [
+      { id: 'apotek-1', name: 'Apotek Sehat', address: 'Jl. Merdeka No. 123' },
+      { id: 'apotek-2', name: 'Apotek Bahagia', address: 'Jl. Sudirman No. 45' },
+      { id: 'apotek-3', name: 'Apotek Sentosa', address: 'Jl. Gatot Subroto No. 67' }
+    ];
+    
+    res.status(200).json({
+      success: true,
+      data: pharmacies
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil data apotek',
+      error: error.message
+    });
+  }
+};
+
 // Fungsi tambahan untuk mendapatkan data invoice
 exports.getInvoice = (req, res) => {
   try {
