@@ -1,27 +1,26 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const apiRouter = require('./routes/api');
+const bodyParser = require('body-parser');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-const cors = require('cors');
-app.use(cors({
-  origin: [
-    'https://your-vercel-app.vercel.app',
-    'http://localhost:3000' // untuk development
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Middleware
+app.use(cors());
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
-app.use('/api', apiRouter);
+// Import routes
+const apiRoutes = require('./routes/api');
+app.use('/api', apiRoutes);  // Semua endpoint diawali dengan /api
 
-app.listen(PORT, () => {
-  console.log(`Server berjalan di port ${PORT}`);
-});
+// Handle production
+if (process.env.NODE_ENV === 'production') {
+  // Static folder
+  app.use(express.static(__dirname + '/../frontend/build'));
+  
+  // Handle SPA
+  app.get(/.*/, (req, res) => res.sendFile(__dirname + '/../frontend/build/index.html'));
+}
 
+// Ekspor untuk Vercel
 module.exports = app;
