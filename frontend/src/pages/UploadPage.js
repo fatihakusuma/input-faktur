@@ -112,8 +112,14 @@ const UploadPage = () => {
         priceChanges: changes
       };
       
-      const result = await submitInvoice(dataToSubmit);
-      console.log('Invoice submitted:', result);
+      const response = await submitInvoice(data);
+    
+    if(response.status === 'success') {
+      alert('Proses berhasil! Data tidak disimpan permanen');
+    }
+  } catch (error) {
+    // Handle error
+  }
       
       // 3. Lanjut ke step pemilihan apotek
       setStep(3);
