@@ -11,17 +11,4 @@ root.render(
   </React.StrictMode>
 );
 
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request));
-});
-
-async function handleRequest(request) {
-  if (request.method === 'POST' && request.url.endsWith('/submit')) {
-    const data = await request.json();
-    // Proses data faktur di sini
-    return new Response(JSON.stringify({ status: 'success' }));
-  }
-  return new Response('Backend aktif!');
-}
-
 reportWebVitals();
