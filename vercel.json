@@ -15,13 +15,18 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "backend/server.js"
+      "src": "/api/submit",
+      "dest": "backend/server.js",
+      "methods": ["POST"]
     },
     {
-      "src": "/(.*)",
-      "dest": "frontend/build/$1",
+      "src": "/api/invoices/(.*)",
+      "dest": "backend/server.js",
       "methods": ["GET"]
-    }
-  ]
+    },
+    {
+      "src": "/api/previous-prices",
+      "dest": "backend/server.js",
+      "methods": ["GET"]
+    },
 }
