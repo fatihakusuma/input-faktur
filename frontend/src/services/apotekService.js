@@ -1,16 +1,25 @@
-import axios from 'axios';
+import axiosInstance from '../api/axiosConfig';;
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-export const submitToApotekDigital = async (invoiceData, pharmacyUrl) => {
+// Fungsi untuk submit invoice
+export const submitInvoice = async (invoiceData) => {
   try {
-    const response = await axios.post(`${API_URL}/submit-invoice`, {
-      invoiceData,
-      pharmacyUrl
-    });
+    const response = await axiosInstance.post('/submit', invoiceData);
     return response.data;
   } catch (error) {
-    console.error('Error submitting to Apotek Digital:', error);
-    throw new Error(error.response?.data?.error || 'Gagal mengupload faktur');
+    console.error('Error submitting invoice:', error);
+    throw error;
+  }
+};
+
+// Fungsi untuk mendapatkan data apotek
+export const getPharmacies = async () => {
+  try {
+    const response = await axiosInstance.get('/apotek');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching pharmacies:', error);
+    throw error;
   }
 };
