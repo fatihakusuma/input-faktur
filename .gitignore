@@ -1,0 +1,79 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build artifacts
+build/
+dist/
+out/
+.next/
+.vercel/
+
+# Frontend specific
+frontend/.env
+frontend/build/
+frontend/.next/
+frontend/node_modules/
+
+# Backend specific
+backend/.env
+backend/node_modules/
+backend/data/   # Folder penyimpanan data lokal
+!backend/data/produkMapping.json # Kecuali file mapping produk
+
+# Development files
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+*.pem
+
+# IDE & Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Puppeteer
+.cache/
+.local-chromium/
+
+# File data lokal
+*.json
+!package.json   # Kecuali file package.json
+!frontend/data/produkMapping.json # Kecuali file mapping produk frontend
+
+# Testing
+coverage/
+.nyc_output/
+
+# Debug
+debug/
+*.dump
+
+# Vercel
+.vercel
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Misc
+temp/
+tmp/
+*.tmp
+*.bak
