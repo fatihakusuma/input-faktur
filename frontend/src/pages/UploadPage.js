@@ -1,20 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FileUpload from '../components/FileUpload';
 import PreviewData from '../components/PreviewData';
 import PharmacySelector from '../components/PharmacySelector';
 import { processInvoice } from '../services/geminiService';
 import { mapProducts } from '../utils/mapping';
 import produkMapping from '../data/produkMapping.json';
-import { submitInvoice } from '../services/apotekService'; 
+import { submitInvoice } from '../services/apotekService';
 
 const UploadPage = () => {
   const [step, setStep] = useState(1);
   const [invoiceData, setInvoiceData] = useState(null);
   const [priceChanges, setPriceChanges] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error'
+  const [errorMessage, setErrorMessage] = useState('');
+  
+  // Reset state saat komponen dimount
+  useEffect(() => {
+    // Hapus data dari localStorage jika ada
+    localStorage.removeItem('invoiceData');
+    localStorage.removeItem('targetPharmacy');
+  }, []);
 
   const handleFileUpload = async (fileData) => {
     setLoading(true);
+    setSubmitStatus(null);
+    setErrorMessage('');
+    
     try {
       const rawData = await processInvoice(fileData);
       
@@ -35,7 +47,8 @@ const UploadPage = () => {
       setStep(2);
     } catch (error) {
       console.error('Error processing invoice:', error);
-      alert('Gagal memproses faktur: ' + error.message);
+      setSubmitStatus('error');
+      setErrorMessage('Gagal memproses faktur: ' + (error.message || 'Terjadi kesalahan'));
     } finally {
       setLoading(false);
     }
@@ -65,26 +78,7 @@ const UploadPage = () => {
     }
   };
 
-   const handleSubmit = async () => {
-    try {
-      // Kirim invoiceData + priceChanges
-      const dataToSubmit = {
-        ...invoiceData,
-        priceChanges
-      };
-      
-      const result = await submitInvoice(dataToSubmit);
-      console.log('Invoice submitted:', result);
-      
-      // Setelah submit berhasil, lanjut ke pemilihan apotek
-      setStep(3);
-    } catch (error) {
-      console.error('Submission failed:', error);
-      alert('Gagal menyimpan faktur: ' + error.message);
-    }
-  };
-
-  const handleConfirm = () => {
+  const simulatePriceChanges = () => {
     // Simulasikan perbandingan harga
     const changes = invoiceData.produk.map(produk => {
       const previousPrice = Math.floor(Math.random() * 50000) + 10000; // Simulasi
@@ -99,43 +93,137 @@ const UploadPage = () => {
       };
     });
     
-    setPriceChanges(changes);
-    setStep(3);
-     handleSubmit();
+    return changes;
   };
 
-  const handlePharmacySelect = (pharmacy) => {
-    // Simpan data ke localStorage untuk halaman berikutnya
-    localStorage.setItem('invoiceData', JSON.stringify(invoiceData));
-    localStorage.setItem('targetPharmacy', JSON.stringify(pharmacy));
+  const handleConfirm = async () => {
+    setLoading(true);
+    setSubmitStatus(null);
+    setErrorMessage('');
     
-    // Lanjut ke halaman hasil
-    window.location.href = '/result';
+    try {
+      // 1. Simulasi perubahan harga
+      const changes = simulatePriceChanges();
+      setPriceChanges(changes);
+      
+      // 2. Submit data ke backend
+      const dataToSubmit = {
+        ...invoiceData,
+        priceChanges: changes
+      };
+      
+      const result = await submitInvoice(dataToSubmit);
+      console.log('Invoice submitted:', result);
+      
+      // 3. Lanjut ke step pemilihan apotek
+      setStep(3);
+      setSubmitStatus('success');
+    } catch (error) {
+      console.error('Submission failed:', error);
+      setSubmitStatus('error');
+      setErrorMessage('Gagal menyimpan faktur: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePharmacySelect = async (pharmacy) => {
+    setLoading(true);
+    setSubmitStatus(null);
+    setErrorMessage('');
+    
+    try {
+      // Submit data lengkap dengan apotek pilihan
+      const finalData = {
+        ...invoiceData,
+        priceChanges,
+        selectedPharmacy: pharmacy
+      };
+      
+      const result = await submitInvoice(finalData);
+      console.log('Final submission:', result);
+      
+      // Simpan ke localStorage untuk halaman berikutnya
+      localStorage.setItem('invoiceData', JSON.stringify(finalData));
+      localStorage.setItem('targetPharmacy', JSON.stringify(pharmacy));
+      
+      // Lanjut ke halaman hasil
+      window.location.href = '/result';
+    } catch (error) {
+      console.error('Failed to save with pharmacy:', error);
+      setSubmitStatus('error');
+      setErrorMessage('Gagal menyimpan pilihan apotek: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="upload-page">
-      <h1>Upload Faktur Pembelian</h1>
-      
-      {step === 1 && (
-        <>
-          <FileUpload onFileUpload={handleFileUpload} />
-          {loading && <p>Memproses faktur...</p>}
-        </>
-      )}
-      
-      {step === 2 && invoiceData && (
-        <PreviewData 
-          invoiceData={invoiceData} 
-          onEdit={handleEdit}
-          onConfirm={handleConfirm}
-          priceChanges={priceChanges}
-        />
-      )}
-      
-      {step === 3 && (
-        <PharmacySelector onSelect={handlePharmacySelect} />
-      )}
+    <div className="container mt-5 upload-page">
+      <div className="card shadow">
+        <div className="card-header bg-primary text-white">
+          <h1 className="text-center">Upload Faktur Pembelian</h1>
+        </div>
+        
+        <div className="card-body">
+          {submitStatus === 'error' && (
+            <div className="alert alert-danger alert-dismissible fade show" role="alert">
+              {errorMessage}
+              <button 
+                type="button" 
+                className="btn-close" 
+                onClick={() => setSubmitStatus(null)}
+                aria-label="Close"
+              ></button>
+            </div>
+          )}
+          
+          {submitStatus === 'success' && (
+            <div className="alert alert-success alert-dismissible fade show" role="alert">
+              Data faktur berhasil disimpan!
+              <button 
+                type="button" 
+                className="btn-close" 
+                onClick={() => setSubmitStatus(null)}
+                aria-label="Close"
+              ></button>
+            </div>
+          )}
+          
+          {loading && (
+            <div className="d-flex justify-content-center align-items-center my-5 py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <span className="ms-3">Memproses...</span>
+            </div>
+          )}
+          
+          {!loading && step === 1 && (
+            <div className="text-center">
+              <FileUpload onFileUpload={handleFileUpload} />
+              <p className="mt-3 text-muted">
+                Unggah file faktur dalam format PDF atau gambar (JPG/PNG)
+              </p>
+            </div>
+          )}
+          
+          {!loading && step === 2 && invoiceData && (
+            <PreviewData 
+              invoiceData={invoiceData} 
+              onEdit={handleEdit}
+              onConfirm={handleConfirm}
+            />
+          )}
+          
+          {!loading && step === 3 && (
+            <div>
+              <h2 className="mb-4">Pilih Apotek Tujuan</h2>
+              <PharmacySelector onSelect={handlePharmacySelect} />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
