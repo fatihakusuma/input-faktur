@@ -5,6 +5,7 @@ import PharmacySelector from '../components/PharmacySelector';
 import { processInvoice } from '../services/geminiService';
 import { mapProducts } from '../utils/mapping';
 import produkMapping from '../data/produkMapping.json';
+import { submitInvoice } from '../services/apotekService'; 
 
 const UploadPage = () => {
   const [step, setStep] = useState(1);
@@ -64,6 +65,25 @@ const UploadPage = () => {
     }
   };
 
+   const handleSubmit = async () => {
+    try {
+      // Kirim invoiceData + priceChanges
+      const dataToSubmit = {
+        ...invoiceData,
+        priceChanges
+      };
+      
+      const result = await submitInvoice(dataToSubmit);
+      console.log('Invoice submitted:', result);
+      
+      // Setelah submit berhasil, lanjut ke pemilihan apotek
+      setStep(3);
+    } catch (error) {
+      console.error('Submission failed:', error);
+      alert('Gagal menyimpan faktur: ' + error.message);
+    }
+  };
+
   const handleConfirm = () => {
     // Simulasikan perbandingan harga
     const changes = invoiceData.produk.map(produk => {
@@ -81,6 +101,7 @@ const UploadPage = () => {
     
     setPriceChanges(changes);
     setStep(3);
+     handleSubmit();
   };
 
   const handlePharmacySelect = (pharmacy) => {
