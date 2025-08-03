@@ -1,8 +1,5 @@
-import axiosInstance from '../api/axiosConfig';;
+import axiosInstance from '../api/axiosConfig';  /
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-
-// Fungsi untuk submit invoice
 export const submitInvoice = async (invoiceData) => {
   try {
     const response = await axiosInstance.post('/submit', invoiceData);
