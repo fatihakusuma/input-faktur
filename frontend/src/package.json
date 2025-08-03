@@ -37,16 +37,6 @@
       "last 1 safari version"
     ]
   },
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "frontend/build/static/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/build/index.html",  // Mengarah ke file build
-      "methods": ["GET"]
-    }
-  ]
 
 }
+
