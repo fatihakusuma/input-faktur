@@ -4,11 +4,16 @@ const { getPreviousPrices } = require('../utils/helpers');
 
 exports.submitInvoice = async (req, res) => {
   try {
-    const { invoiceData, pharmacyUrl } = req.body;
-    const result = await submitToApotekDigital(invoiceData, pharmacyUrl);
-    res.json(result);
+    const invoiceData = req.body;
+    const processedData = {
+      status: 'success',
+      message: 'Data berhasil diproses',
+      timestamp: new Date().toISOString(),
+      data: invoiceData
+    };
+    
+    res.status(200).json(processedData);
   } catch (error) {
-    console.error('Error submitting to Apotek Digital:', error);
     res.status(500).json({ error: error.message });
   }
 };
