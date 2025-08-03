@@ -3,32 +3,42 @@ const path = require('path');
 const { submitToApotekDigital } = require('../services/puppeteerService');
 const { calculatePriceChanges } = require('../services/priceService');
 
+// =================== PENYIMPANAN FILE (DISABLE DI VERCEL) ===================
+const DISABLE_FILE_STORAGE = process.env.DISABLE_FILE_STORAGE === 'true' || process.env.NODE_ENV === 'production';
+
 // Path untuk file penyimpanan
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const INVOICES_FILE = path.join(DATA_DIR, 'invoices.json');
-const PRICES_FILE = path.join(DATA_DIR, 'prices.json');
+const DATA_DIR = DISABLE_FILE_STORAGE ? null : path.join(__dirname, '..', 'data');
+const INVOICES_FILE = DISABLE_FILE_STORAGE ? null : path.join(DATA_DIR, 'invoices.json');
+const PRICES_FILE = DISABLE_FILE_STORAGE ? null : path.join(DATA_DIR, 'prices.json');
 
-// Buat folder data jika belum ada
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-// Load data dari file
 let invoices = [];
 let previousPrices = [];
 
-try {
-  if (fs.existsSync(INVOICES_FILE)) {
-    invoices = JSON.parse(fs.readFileSync(INVOICES_FILE));
-    console.log(`Loaded ${invoices.length} invoices from file`);
-  }
+// Inisialisasi hanya jika file storage diaktifkan
+if (!DISABLE_FILE_STORAGE) {
+  console.log('File storage enabled');
   
-  if (fs.existsSync(PRICES_FILE)) {
-    previousPrices = JSON.parse(fs.readFileSync(PRICES_FILE));
-    console.log(`Loaded ${previousPrices.length} previous prices from file`);
+  // Buat folder data jika belum ada
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
   }
-} catch (error) {
-  console.error('Error loading data files:', error);
+
+  // Load data dari file
+  try {
+    if (fs.existsSync(INVOICES_FILE)) {
+      invoices = JSON.parse(fs.readFileSync(INVOICES_FILE));
+      console.log(`Loaded ${invoices.length} invoices from file`);
+    }
+    
+    if (fs.existsSync(PRICES_FILE)) {
+      previousPrices = JSON.parse(fs.readFileSync(PRICES_FILE));
+      console.log(`Loaded ${previousPrices.length} previous prices from file`);
+    }
+  } catch (error) {
+    console.error('Error loading data files:', error);
+  }
+} else {
+  console.log('File storage disabled in production');
 }
 
 // Helper untuk mendapatkan harga sebelumnya
@@ -36,21 +46,24 @@ const getPreviousPrices = () => {
   return previousPrices;
 };
 
-// Simpan data ke file
+// Simpan data ke file (hanya jika diaktifkan)
 const saveDataToFile = () => {
+  if (DISABLE_FILE_STORAGE) return;
+  
   try {
-    if (process.env.NODE_ENV !== 'production') {
-      fs.writeFileSync(INVOICES_FILE, JSON.stringify(invoices, null, 2));
-      fs.writeFileSync(PRICES_FILE, JSON.stringify(previousPrices, null, 2));
-      console.log('Data saved to files');
-    }
+    fs.writeFileSync(INVOICES_FILE, JSON.stringify(invoices, null, 2));
+    fs.writeFileSync(PRICES_FILE, JSON.stringify(previousPrices, null, 2));
+    console.log('Data saved to files');
   } catch (error) {
     console.error('Error saving data to files:', error);
   }
 };
 
-// Auto-save setiap 5 menit
-setInterval(saveDataToFile, 5 * 60 * 1000); // 5 menit
+// Auto-save hanya jika diaktifkan
+if (!DISABLE_FILE_STORAGE) {
+  setInterval(saveDataToFile, 5 * 60 * 1000); // 5 menit
+}
+// ============================================================================
 
 exports.submitInvoice = async (req, res) => {
   try {
@@ -104,7 +117,7 @@ exports.submitInvoice = async (req, res) => {
         .slice(0, 200);
     }
     
-    // Simpan ke file
+    // Simpan ke file (jika diaktifkan)
     saveDataToFile();
     
     // Simulasikan submit ke Apotek Digital jika diperlukan
@@ -210,12 +223,14 @@ exports.resetData = (req, res) => {
     invoices = [];
     previousPrices = [];
     
-    // Hapus file data
-    try {
-      if (fs.existsSync(INVOICES_FILE)) fs.unlinkSync(INVOICES_FILE);
-      if (fs.existsSync(PRICES_FILE)) fs.unlinkSync(PRICES_FILE);
-    } catch (error) {
-      console.error('Error deleting data files:', error);
+    // Hapus file data (jika diaktifkan)
+    if (!DISABLE_FILE_STORAGE) {
+      try {
+        if (fs.existsSync(INVOICES_FILE)) fs.unlinkSync(INVOICES_FILE);
+        if (fs.existsSync(PRICES_FILE)) fs.unlinkSync(PRICES_FILE);
+      } catch (error) {
+        console.error('Error deleting data files:', error);
+      }
     }
     
     res.json({ success: true, message: 'Data telah direset' });
@@ -224,38 +239,17 @@ exports.resetData = (req, res) => {
   }
 };
 
-// Fungsi untuk backup data (hanya untuk development)
-exports.backupData = (req, res) => {
-  if (process.env.NODE_ENV !== 'production') {
-    try {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const backupDir = path.join(DATA_DIR, 'backups');
-      
-      if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir, { recursive: true });
-      }
-      
-      fs.copyFileSync(INVOICES_FILE, path.join(backupDir, `invoices-${timestamp}.json`));
-      fs.copyFileSync(PRICES_FILE, path.join(backupDir, `prices-${timestamp}.json`));
-      
-      res.json({ success: true, message: 'Backup berhasil dibuat' });
-    } catch (error) {
-      res.status(500).json({ success: false, message: 'Gagal membuat backup' });
-    }
-  } else {
-    res.status(403).json({ success: false, message: 'Tidak diizinkan di production' });
-  }
-};
+// Simpan data saat proses exit (hanya jika diaktifkan)
+if (!DISABLE_FILE_STORAGE) {
+  process.on('SIGINT', () => {
+    console.log('Saving data before exit...');
+    saveDataToFile();
+    process.exit();
+  });
 
-// Simpan data saat proses exit
-process.on('SIGINT', () => {
-  console.log('Saving data before exit...');
-  saveDataToFile();
-  process.exit();
-});
-
-process.on('SIGTERM', () => {
-  console.log('Saving data before exit...');
-  saveDataToFile();
-  process.exit();
-});
+  process.on('SIGTERM', () => {
+    console.log('Saving data before exit...');
+    saveDataToFile();
+    process.exit();
+  });
+}
