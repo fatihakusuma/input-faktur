@@ -1,3 +1,14 @@
+import axiosInstance from '../api/axiosConfig';
+
+export const analyzeInvoice = async (invoiceData) => {
+  try {
+    const response = await axiosInstance.post('/analyze', invoiceData);
+    return response.data;
+  } catch (error) {
+    console.error('Error analyzing invoice:', error);
+    throw error;
+  }
+};
 // Simulasi pemrosesan Gemini AI
 export const processInvoice = async (fileData) => {
   // Simulasi delay pemrosesan
