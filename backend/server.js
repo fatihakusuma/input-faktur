@@ -22,5 +22,15 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "Invoice processing API is running",
+    endpoints: {
+      process: "/process-invoice (POST)"
+    }
+  });
+});
+
 // Export untuk Vercel
 module.exports = app;
