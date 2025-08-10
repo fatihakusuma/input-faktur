@@ -54,3 +54,30 @@ export const getPreviousPrices = async () => {
     throw error;
   }
 };
+
+// Fungsi submit ke apotekdigital
+export const submitToApotekDigital = async (data, selectedPharmacy) => {
+  try {
+    const payload = {
+      ...data,
+      pharmacyId: selectedPharmacy.id
+    };
+    
+    const response = await axiosInstance.post(
+      '/api/submit-to-apotek', 
+      payload
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting to Apotek Digital:', error);
+    
+    // Penanganan error lebih baik
+    if (error.response) {
+      const { status, data } = error.response;
+      throw new Error(`[${status}] ${data.message || 'Failed to submit to Apotek Digital'}`);
+    } else {
+      throw new Error('Network error or server unreachable');
+    }
+  }
+};
