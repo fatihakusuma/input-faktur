@@ -16,10 +16,10 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build && move /Y build ..\\public",
+    "build": "react-scripts build",
+  "now-build": "npm run build && cp -a build/. public/",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "now-build": "npm run build"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
