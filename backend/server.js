@@ -7,84 +7,137 @@ const puppeteerExtra = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteerExtra.use(StealthPlugin());
 
+// Validasi environment variables penting
+if (!process.env.GEMINI_API_KEY) {
+  console.error("FATAL ERROR: GEMINI_API_KEY is not defined");
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// Konfigurasi CORS dinamis
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? ['https://input-faktur.vercel.app']
+  : ['http://localhost:3000', 'https://input-faktur.vercel.app'];
+
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
-// Root endpoint untuk verifikasi server hidup
+// Endpoint root
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "success",
     message: "Invoice processing API is running",
-    endpoints: {
-      process: "/process-invoice (POST)"
-    }
+    version: "1.0.1",
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// Endpoint untuk memproses invoice
+// Endpoint proses invoice
 app.post('/process-invoice', async (req, res) => {
   const { url } = req.body;
 
+  // Validasi URL
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
   }
 
   try {
-    // Konfigurasi khusus untuk Vercel
-    const browser = await puppeteerExtra.launch({
+    new URL(url); // Validasi format URL
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid URL format' });
+  }
+
+  let browser;
+  try {
+    // Konfigurasi browser untuk Vercel
+    const browserConfig = {
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--single-process'
       ],
-      executablePath: process.env.CHROME_EXECUTABLE_PATH || null,
-      headless: 'new'
-    });
+      headless: 'new',
+      timeout: 30000
+    };
 
+    // Gunakan executable khusus jika ada di environment
+    if (process.env.CHROME_EXECUTABLE_PATH) {
+      browserConfig.executablePath = process.env.CHROME_EXECUTABLE_PATH;
+    }
+
+    browser = await puppeteerExtra.launch(browserConfig);
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2' });
     
-    // Ekstraksi teks dari halaman
-    const pageContent = await page.evaluate(() => {
-      return document.body.innerText;
+    // Navigasi dengan timeout
+    await page.goto(url, { 
+      waitUntil: 'domcontentloaded',
+      timeout: 30000 
     });
 
-    await browser.close();
+    // Tunggu body tersedia
+    await page.waitForSelector('body', { timeout: 5000 });
+    
+    // Ekstraksi konten
+    const pageContent = await page.evaluate(() => {
+      return document.body.innerText || '';
+    });
 
-    // Proses dengan Google Gemini
+    // Proses dengan Gemini AI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    const prompt = `Extract the following invoice details in JSON format with keys: "vendor_name", "invoice_date", "invoice_number", "total_amount", "currency". Only respond with the JSON object. Here is the text: ${pageContent.substring(0, 15000)}`;
+    // Prompt yang lebih robust
+    const prompt = `Extract invoice details from the following text and return in JSON format with these keys: 
+      "vendor_name", "invoice_date" (YYYY-MM-DD format), "invoice_number", "total_amount" (number), "currency" (3-letter code). 
+      If any information is missing, use null. Only return valid JSON.
+      Text: ${pageContent.substring(0, 30000)}`;
+
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text().trim();
 
-    // Parsing respons JSON
-    try {
-      const invoiceData = JSON.parse(text);
-      res.json(invoiceData);
-    } catch (parseError) {
-      console.error('Error parsing JSON:', parseError);
-      res.status(500).json({ error: 'Failed to parse invoice data', details: text });
+    // Handle non-JSON response
+    if (!text.startsWith('{') || !text.endsWith('}')) {
+      throw new Error('Invalid response from Gemini API: ' + text);
     }
+
+    const invoiceData = JSON.parse(text);
+    res.json(invoiceData);
+    
   } catch (error) {
     console.error('Error processing invoice:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    
+    // Response error lebih informatif
+    const errorMessage = error.response 
+      ? `Service error: ${error.response.status}`
+      : error.message || 'Internal server error';
+    
+    res.status(500).json({ 
+      error: 'Invoice processing failed',
+      details: errorMessage
+    });
+    
+  } finally {
+    // Pastikan browser selalu ditutup
+    if (browser) await browser.close();
   }
 });
 
-// Ekspor app untuk Vercel
+// Ekspor untuk Vercel
 module.exports = app;
 
-// Jika dijalankan secara lokal, jalankan server
-if (process.env.NODE_ENV !== 'production') {
+// Jalankan server lokal jika tidak di production
+if (require.main === module && process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running locally on port ${PORT}`);
+    console.log(`CORS allowed for: ${allowedOrigins.join(', ')}`);
   });
 }
