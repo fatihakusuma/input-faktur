@@ -55,7 +55,7 @@ Thumbs.db
 # File data lokal
 *.json
 !package.json   # Kecuali file package.json
-!frontend/data/produkMapping.json # Kecuali file mapping produk frontend
+!frontend/src/data/produkMapping.json # Kecuali file mapping produk frontend
 
 # Testing
 coverage/
