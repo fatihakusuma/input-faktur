@@ -1,16 +1,16 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import UploadPage from './pages/UploadPage';
-import ResultPage from './pages/ResultPage';
+import InvoiceForm from './components/InvoiceForm';
+import InvoiceResult from './components/InvoiceResult';
 import './App.css';
 
 function App() {
   return (
-    <Router>
+    <Router basename={process.env.PUBLIC_URL}>
       <div className="App">
         <Routes>
-          <Route path="/" element={<UploadPage />} />
-          <Route path="/result" element={<ResultPage />} />
+          <Route path="/" element={<InvoiceForm />} />
+          <Route path="/result" element={<InvoiceResult />} />
         </Routes>
       </div>
     </Router>
