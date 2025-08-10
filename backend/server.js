@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // Tambahkan modul path
+const path = require('path');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const puppeteer = require('puppeteer-core');
 const puppeteerExtra = require('puppeteer-extra');
@@ -30,13 +30,16 @@ app.use(cors({
 
 app.use(express.json());
 
-// =============================================
-// PERBAIKAN: Tambahkan static file serving
-// =============================================
+// ==================================================
+// PERBAIKAN KRITIS: Static file serving
+// ==================================================
 const frontendPath = path.join(__dirname, '../frontend/build');
+console.log(`Serving frontend from: ${frontendPath}`);
+
+// Middleware untuk static files
 app.use(express.static(frontendPath));
 
-// Handle semua route frontend
+// Tangani semua route untuk frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
