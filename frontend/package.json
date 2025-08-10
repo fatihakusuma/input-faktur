@@ -17,7 +17,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-  "now-build": "npm run build && cp -a build/. public/",
+    "now-build": "npm run build && cp -a build/. public/ || xcopy /y /e build\\* public\\",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
