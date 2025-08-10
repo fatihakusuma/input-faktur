@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path'); // Tambahkan modul path
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const puppeteer = require('puppeteer-core');
 const puppeteerExtra = require('puppeteer-extra');
@@ -29,18 +30,20 @@ app.use(cors({
 
 app.use(express.json());
 
-// Endpoint root
-app.get("/", (req, res) => {
-  res.status(200).json({
-    status: "success",
-    message: "Invoice processing API is running",
-    version: "1.0.1",
-    environment: process.env.NODE_ENV || 'development'
-  });
+// =============================================
+// PERBAIKAN: Tambahkan static file serving
+// =============================================
+const frontendPath = path.join(__dirname, '../frontend/build');
+app.use(express.static(frontendPath));
+
+// Handle semua route frontend
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
+// Endpoint root (sekarang sudah ditangani oleh static di atas)
 // Endpoint proses invoice
-app.post('/process-invoice', async (req, res) => {
+app.post('/api/process-invoice', async (req, res) => { // Ubah path menjadi /api/process-invoice
   const { url } = req.body;
 
   // Validasi URL
@@ -139,5 +142,6 @@ if (require.main === module && process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`Server running locally on port ${PORT}`);
     console.log(`CORS allowed for: ${allowedOrigins.join(', ')}`);
+    console.log(`Serving frontend from: ${frontendPath}`);
   });
 }
