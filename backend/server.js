@@ -33,15 +33,14 @@ app.use(express.json());
 // ==================================================
 // PERBAIKAN KRITIS: Static file serving
 // ==================================================
-const frontendPath = path.join(__dirname, '../frontend/build');
-console.log(`Serving frontend from: ${frontendPath}`);
+const publicPath = path.join(__dirname, '../public');
+console.log(`Serving public files from: ${publicPath}`);
 
-// Middleware untuk static files
-app.use(express.static(frontendPath));
+app.use(express.static(publicPath));
 
 // Tangani semua route untuk frontend
 app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 // Endpoint root (sekarang sudah ditangani oleh static di atas)
