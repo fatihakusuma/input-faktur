@@ -17,7 +17,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "now-build": "npm run build && xcopy /y /e build\\* public\\",
+    "now-build": "npm run build && powershell -Command \"Copy-Item -Path 'build/*' -Destination 'public' -Recurse -Force\"",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
